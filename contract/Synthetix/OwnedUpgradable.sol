@@ -1,9 +1,9 @@
-pragma solidity 0.8.16;
+
+pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts-upgradeable-4.5.1/proxy/utils/Initializable.sol";
 import "./AbstractOwned.sol";
 
-pragma solidity 0.8.16;
 
 /**
  * @title OwnedUpgradeable

@@ -51,25 +51,83 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
     // Events for option expiration and exercise
     event OptionExpired(uint256 optionId);
     event OptionExercised(uint256 optionId);
+    event OptionBurned (uint256 optionId);
 
 
-    function exerciseCallOption(uint256 _optionId) public {
-    require(msg.sender != address(0), "Can't exercise option from contract address");
+    function exerciseCallOption(uint256 _optionId) public returns(string) {
+       
+        require(msg.sender != address(0), "Can't exercise option from contract address");
 
-    // Check if the user is the owner of the option NFT
-    require(msg.sender == ownerOf(_optionId), "User own the NFT to exercise the option");
+        // Get the option details
+        Option memory option = _getOption(_optionId);
 
-    // Get the option details
-    Option memory option = _getOption(_optionId);
+        // Check if the user is the owner of the option NFT
+        require(msg.sender == ownerOf(_optionId), "User own the NFT to exercise the option");
 
-    // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
-    require(option.expirationDate > block.timestamp && option.expryDate < block.timestamp + 1 days, "Option is not in it's one day exercisable window");
+        require(option.isCall == true, "this is not a call option");
+       
 
-    // Check if the underlying asset price has been updated
-    uint256 currentAssetPrice = getLatestPrice();
-    require(currentAssetPrice > 0, "Underlying asset price must be retrieved before exercising the option");
-    
-            // Call ITM and execution Logic
+        // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
+        require(option.expirationDate > block.timestamp && option.expiryDate < block.timestamp + 1 days, "Option is not in its one day exercisable window");
+
+        // Check if the underlying asset price has been updated
+        uint256 currentAssetPrice = getLatestPrice();
+        require(currentAssetPrice > 0, "Underlying asset price must be retrieved before exercising the option");
+
+        if(option.strikePrice <= currentAssetPrice) {
+            // Check if the buyer has sufficient USDC to pay the strike price
+            address usdcAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+            IERC20 usdc = IERC20(usdcAddress);
+            require(usdc.balanceOf(msg.sender) >= option.strikePrice, "Buyer must have sufficient USDC to pay the strike price");
+            
+            // Transfer the USDC to the seller
+            usdc.transfer(option.counterpartyAddress, option.strikePrice);
+
+            // Transfer the underlying ETH to the buyer
+            address buyerAddress = msg.sender;
+            address sellerAddress = option.counterpartyAddress;
+            uint256 underlyingValue = option.underlyingValue;
+            require(sellerAddress.transfer(underlyingValue), "Transfer of underlying ETH to buyer failed");
+
+            // Remove the NFT from the buyer
+            _burn(buyerAddress, _optionId);
+            return "Option exercised successfully";
+        } else {
+            return "Option is out of the money";
+        }
+    }
+
+
+    function exercisePutOption(uint256 _optionId) public returns(string) {
+       
+        require(msg.sender != address(0), "Can't exercise option from contract address");
+
+        // Get the option details
+        Option memory option = _getOption(_optionId);
+
+        // Check if the user is the owner of the option NFT
+        require(msg.sender == ownerOf(_optionId), "User must own the NFT to exercise the option");
+
+        require(option.isCall == false, "This is not a put option");
+       
+
+        // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
+        require(option.expirationDate > block.timestamp && option.expryDate < block.timestamp + 1 days, "Option is not in it's one day exercisable window");
+
+        // Check if the underlying asset price has been updated
+        uint256 currentAssetPrice = getLatestPrice();
+        require(currentAssetPrice > 0, "Underlying asset price must be retrieved before exercising the option");
+
+        if(option.strikePrice >= currentAssetPrice) {
+            // The option is ITM, transfer the strike price to the counterparty
+            uint256 usdcPrice = option.strikePrice;
+            require(ERC20(usdcAddress).transfer(option.counterpartyAddress, usdcPrice), "USDC transfer failed");
+
+            // Transfer the underlying value (eth) to the buyer/holder of the option NFT
+            uint256 underlyingValue = option.underlyingValue;
+            require(address(this).transfer(msg.sender, underlyingValue), "Underlying asset transfer failed");
+        }
+        
     }
 
     function expireOption(uint256 optionId) public {
@@ -78,14 +136,15 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
         burn(optionId);
         msg.sender.transfer(underlyingValue);
         ownerOptionCount--;
-
+        emit OptionExpired(optionId);
     }
 
     // burn function can only be initiaited by seller if he possesses the option token
-    // i.e. he has not sold the NFT.  
+    // i.e. he has not sold the NFT or has repurchased it from the mark
     function burnOption() public onlyOwnerOf(optionId) returns(bool) {
         reqire(ownerof[optionId] == msg.sender)
         burn(optionId);
         msg.sender.transfer(optionId.underlyingValue);
+        emit OptionBurned(optionId);
     }
 }

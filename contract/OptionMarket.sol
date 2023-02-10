@@ -46,6 +46,8 @@ contract OptionMarket is OptionToken, OptionVault {
             owner: msg.sender
         });
         emit OrderPlaced(msg.sender, _price, _quantity);
+
+        // add token Id
     }
 
     function placeBid(uint256 _price) public {
