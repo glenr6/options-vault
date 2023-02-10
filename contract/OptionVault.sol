@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./libraries/BlackScholes.sol";
+// import "./libraries/BlackScholes.sol";     - likely won't be included in the option contract --> pricing to occur off chain
 import "./OptionToken.sol";
 import "./PriceConsumerV3.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
+contract OptionVault is OptionToken, PriceConsumerV3 {
 
     struct Seller {
         uint256 depositedCollateral;
@@ -32,6 +33,9 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
         require(msg.sender == optionToOwner[optionId]);
     _;
 
+    address usdcAddress = 0xff970a61a04b1ca14834a43f5de4533ebddb5cc8;
+
+ // @dev  may have to create a different function for depositing call and put collateral to manage the different assets required for this
     function depositCollateral(
         uint256 strikePrice;
         uint256 expirationDate; 
@@ -76,9 +80,8 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
 
         if(option.strikePrice <= currentAssetPrice) {
             // Check if the buyer has sufficient USDC to pay the strike price
-            address usdcAddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
             IERC20 usdc = IERC20(usdcAddress);
-            require(usdc.balanceOf(msg.sender) >= option.strikePrice, "Buyer must have sufficient USDC to pay the strike price");
+            require(usdc.balanceOf(msg.sender) >= option.strikePrice, "Buyer must have sufficient USDC to exercise at the strike price");
             
             // Transfer the USDC to the seller
             usdc.transfer(option.counterpartyAddress, option.strikePrice);
@@ -87,7 +90,7 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
             address buyerAddress = msg.sender;
             address sellerAddress = option.counterpartyAddress;
             uint256 underlyingValue = option.underlyingValue;
-            require(sellerAddress.transfer(underlyingValue), "Transfer of underlying ETH to buyer failed");
+            require(sellerAddress.transfer(underlyingValue), "Transfer of underlying asset to buyer failed");
 
             // Remove the NFT from the buyer
             _burn(buyerAddress, _optionId);
@@ -119,7 +122,7 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
         require(currentAssetPrice > 0, "Underlying asset price must be retrieved before exercising the option");
 
         if(option.strikePrice >= currentAssetPrice) {
-            // The option is ITM, transfer the strike price to the counterparty
+            // The option is ITM, transfer the strike price to the buyer 
             uint256 usdcPrice = option.strikePrice;
             require(ERC20(usdcAddress).transfer(option.counterpartyAddress, usdcPrice), "USDC transfer failed");
 

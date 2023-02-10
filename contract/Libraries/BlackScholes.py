@@ -1,5 +1,8 @@
+# logic for pricing options. Will be computed off chain so the user has flexibility with what price the want to list the positions at.
+
 import math
 from scipy.stats import norm
+import AggregatorV3
 
 def black_scholes(strike_price, spot_price, time_to_expiry, interest_rate, implied_volatility):
     # TO DO STILL:
@@ -8,7 +11,15 @@ def black_scholes(strike_price, spot_price, time_to_expiry, interest_rate, impli
         #  testing of pricing with long tail values
         #  creating some sort of measure for Implied volatility (coding and implementing)
 
-    
+    strike_price =int(input("enter the strike price here"))
+    spot_price = AggregatorV3.latestData
+    time_to_expiry = int(input())
+    interest_rate = 0.0467
+        # current 3 month t-bill rate ///// Use AAVE or Compund Yield?
+    ## implied_volatility = AggregatorV3.latestData
+    ## how da fuq do I do this?
+
+
 
     # Intermediate calculation variables
     d1 = (math.log(spot_price/strike_price) + ((interest_rate + (implied_volatility ** 2) / 2) * time_to_expiry)) / (implied_volatility * math.sqrt(time_to_expiry))
@@ -38,4 +49,3 @@ def black_scholes(strike_price, spot_price, time_to_expiry, interest_rate, impli
         'vega': std_vega,
         'std_vega': std_vega
     }
-

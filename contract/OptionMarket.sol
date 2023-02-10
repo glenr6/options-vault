@@ -1,12 +1,12 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 
 
 // @dev this contract will act as a limit orderbook where optionNFT holders can list their options and buyers an give an ask prie
-// following untions required: list bid cancel burns
 
 
 import "./OptionToken.sol";
-import ".libraries/BlackScholes.sol";
 import "./OptionVault.sol";
+import ".libraries/BlackScholes.sol";
 import "libraries/DecimalMath.sol";
 
 contract OptionMarket is OptionToken, OptionVault {
@@ -47,7 +47,7 @@ contract OptionMarket is OptionToken, OptionVault {
         });
         emit OrderPlaced(msg.sender, _price, _quantity);
 
-        // add token Id
+        // add token Id (optionId)
     }
 
     function placeBid(uint256 _price) public {
