@@ -32,7 +32,7 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
         require(msg.sender == optionToOwner[optionId]);
     _;
 
-    function depositCollateral (
+    function depositCollateral(
         uint256 strikePrice;
         uint256 expirationDate; 
         uint256 underlyingValue;  
@@ -41,11 +41,11 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
         address counterpartyAddress;
     ) public payable {
         require(msg.value >= underlyingValue);
+        optionId++;
         Option memory option = Option(strikePrice, expirationDate, underlyingValue, optionId, assetSymbol, isCall, counterpartyAddress);
         options.push(option);
         depositedCollateral[msg.sender] += msg.value;
         mintOption(Option.optionId);
-        optionId++;
     }
 
     // Events for option expiration and exercise
@@ -127,6 +127,7 @@ contract OptionVault is BlackScholes, OptionToken, PriceConsumerV3 {
             uint256 underlyingValue = option.underlyingValue;
             require(address(this).transfer(msg.sender, underlyingValue), "Underlying asset transfer failed");
         }
+        return("Put option exercised successfully")
         
     }
 
