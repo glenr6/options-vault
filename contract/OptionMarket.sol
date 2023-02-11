@@ -110,48 +110,89 @@ contract OptionMarket is OptionToken, OptionVault {
     })) - 1;
 
     emit BidPlaced(id, _nftId, msg.sender, _price);
-}
-
-function cancelBid(uint256 _bidId) public {
-    Bid storage bid = bids[_bidId];
-    require(bid.bidder == msg.sender, "Only the bidder can cancel the bid");
-
-    bids[_bidId] = Bid({});
-    emit BidCancelled(_bidId, bid.nftId, msg.sender, bid.price);
-}
-
-function buyAtMarketPrice(uint256 _nftId) public payable {
-    uint256 marketPrice = getLowestAskPrice(_nftId);
-    buyAtPrice(_nftId, marketPrice);
-}
-
-function buyAtPrice(uint256 _nftId, uint256 _price) private payable {
-    Ask storage ask = asks[askIds[_nftId]];
-    require(ask.nftId == _nftId, "NFT not for sale");
-    require(ask.price == _price, "Price does not match ask price");
-    require(ask.seller != msg.sender, "Cannot buy own NFT");
-    require(msg.value >= _price, "Not enough ether to buy NFT");
-
-    askIds[_nftId] = 0;
-    asks[askIds[_nftId]] = Ask({});
-
-    ownerOf[_nftId] = msg.sender;
-
-    ask.seller.transfer(_price);
-
-    emit NFTBought(_nftId, ask.seller, msg.sender, _price);
-}
-
-function getLowestAskPrice(uint256 _nftId) private view returns (uint256) {
-    uint256 lowestAskPrice = 0;
-    for (uint256 i = 0; i < asks.length; i++) {
-        Ask storage ask = asks[i];
-        if (ask.nftId == _nftId && (lowestAskPrice == 0 || ask.price < lowestAskPrice)) {
-            lowestAskPrice = ask.price;
-        }
     }
-    return lowestAskPrice;
-}
 
+    function cancelBid(uint256 _bidId) public {
+        Bid storage bid = bids[_bidId];
+        require(bid.bidder == msg.sender, "Only the bidder can cancel the bid");
+
+        bids[_bidId] = Bid({});
+        emit BidCancelled(_bidId, bid.nftId, msg.sender, bid.price);
+    }
+
+    function buyAtMarketPrice(uint256 _nftId) public payable {
+        uint256 marketPrice = getLowestAskPrice(_nftId);
+        buyAtPrice(_nftId, marketPrice);
+    }
+
+    function buyAtPrice(uint256 _nftId, uint256 _price) private payable {
+        Ask storage ask = asks[askIds[_nftId]];
+        require(ask.nftId == _nftId, "NFT not for sale");
+        require(ask.price == _price, "Price does not match ask price");
+        require(ask.seller != msg.sender, "Cannot buy own NFT");
+        require(msg.value >= _price, "Not enough ether to buy NFT");
+
+        askIds[_nftId] = 0;
+        asks[askIds[_nftId]] = Ask({});
+
+        ownerOf[_nftId] = msg.sender;
+
+        ask.seller.transfer(_price);
+
+        emit NFTBought(_nftId, ask.seller, msg.sender, _price);
+    }
+
+    function getLowestAskPrice(uint256 _nftId) private view returns (uint256) {
+        require(asks.length > 0, "There are no options for sale");
+        uint256 lowestAskPrice = asks[0].price;
+        for (uint256 i = 0; i < asks.length; i++) {
+            Ask storage ask = asks[i];
+            if (ask.nftId == _nftId && (lowestAskPrice == 0 || ask.price < lowestAskPrice)) {
+                lowestAskPrice = ask.price;
+            }
+            }
+            return lowestAskPrice;
+        }
+
+
+    function getHighestBidPrice(uint256 _optionId) public view returns (uint256) {
+        uint256 highestBidPrice = 0;
+
+        // Loop through the orderMap to find the highest bid price
+        for (uint256 i = 0; i < orderCount; i++) {
+        Order storage order = orderMap[i];
+
+        // Check if the order is a bid order and the optionId matches
+        if (order.orderType == 1 && order.optionId == _optionId) {
+            // Check if the price of the order is greater than the current highest bid price
+            if (order.price > highestBidPrice) {
+            highestBidPrice = order.price;
+            }
+        }
+        }
+
+        return highestBidPrice;
+    }
+
+    function sellAtMarketPrice(uint256 _optionId) public payable {
+        // Get the highest bid price for the option NFT
+        uint256 highestBidPrice = getHighestBidPrice(_optionId);
+
+        // Loop through the orderMap to find the highest bid price
+        for (uint256 i = 0; i < orderCount; i++) {
+        Order storage order = orderMap[i];
+
+        // Check if the order is a bid order and the optionId matches
+        if (order.orderType == 1 && order.optionId == _optionId) {
+            // Check if the price of the order is the highest bid price
+            if (order.price == highestBidPrice) {
+            // Execute the order
+            executeOrder(i);
+            return;
+            }
+        }
+    
+    }
+    }
 
 }

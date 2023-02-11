@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OptionToken is ERC721, Ownable, ERC721Burnable {
     string public name = getName(optionId);
-    string public symbol = "ETHo"; 
+    string public symbol = "oETH"; 
     
     mapping (uint256 => Option) public options;
     uint256 optionId;
