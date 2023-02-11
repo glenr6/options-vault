@@ -38,9 +38,9 @@ contract OptionVault is OptionToken, PriceConsumerV3 {
  // @dev  may have to create a different function for depositing call and put collateral to manage the different assets required for this
     function depositCollateral(
         uint256 strikePrice;
-        uint256 expirationDate; 
-        uint256 underlyingValue;  
-        string assetSymbol; 
+        uint256 expirationDate;
+        uint256 underlyingValue;
+        string assetSymbol;
         bool isCall;
         address counterpartyAddress;
     ) public payable {
@@ -84,6 +84,8 @@ contract OptionVault is OptionToken, PriceConsumerV3 {
             require(usdc.balanceOf(msg.sender) >= option.strikePrice, "Buyer must have sufficient USDC to exercise at the strike price");
             
             // Transfer the USDC to the seller
+            // note: for this smart contract to be able to execute this function,
+            //  
             usdc.transfer(option.counterpartyAddress, option.strikePrice);
 
             // Transfer the underlying ETH to the buyer
@@ -134,6 +136,7 @@ contract OptionVault is OptionToken, PriceConsumerV3 {
         
     }
 
+    // TODO: is this necessary?
     function expireOption(uint256 optionId) public {
         requires(optionId.counterpartyAddress == msg.sender, "You don't own this collateral");
         if block.timestamp > option.expirationDate && Option.counterpartyAddress == msg.sender ; 

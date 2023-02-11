@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+// TODO: instead of _mint, use the _safeMint method from OpenZeppelin's ERC721.sol
 
 contract OptionToken is ERC721, Ownable, ERC721Burnable {
     string public name = getName(optionId);
@@ -22,6 +23,7 @@ contract OptionToken is ERC721, Ownable, ERC721Burnable {
         address counterpartyAddress; // msg.sender 
     }
     
+    // TODO: better if the 
     function mintOption(Option option) internal returns (bool) {
         _mint(msg.sender, option.optionId);
         strikePrice = option.strikePrice;
@@ -34,6 +36,7 @@ contract OptionToken is ERC721, Ownable, ERC721Burnable {
         return true;
     }
 
+    // TODO: OpenZeppelin's Counter can do this job
     function nextTokenId() private returns (uint256) {
         return optionId++;
     }
@@ -61,6 +64,7 @@ contract OptionToken is ERC721, Ownable, ERC721Burnable {
         emit Transfer(_from, _to, _tokenId);
     }
 
+    // TODO: return an Option struct
     // Function to retrieve the option data
     function getOption(uint256 id) public view returns (uint256, uint256, uint256, uint256, string memory, bool, address) {
         Option option = options[id];
