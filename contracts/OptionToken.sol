@@ -84,7 +84,7 @@ contract OptionToken is ERC721, Ownable {
 
         // TODO: decide what to do with the /* */ section below 
         // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
-        require(option.expirationDate > block.timestamp/* && option.expirationDate < block.timestamp + 1 days*/,
+        require(option.expirationDate + 1 days > block.timestamp/* && option.expirationDate < block.timestamp + 1 days*/,
             "Option is not in its one day exercisable window"
         );
 
@@ -110,20 +110,46 @@ contract OptionToken is ERC721, Ownable {
         option.counterpartyAddress.transfer(option.underlyingValue);
 
         // Remove the NFT from the buyer
-        burnOption(_optionId);
+        cancelOption(_optionId);
     }
 
     // TODO: should this function be public? would someone ever want to 
     // burn the option right away rather than waiting for it to expire?
     // i.e. he has not sold the NFT or has repurchased it from the market
-    function burnOption(
+    function cancelOption(
         uint256 optionId
-    ) internal returns(bool) {
-        require(ERC721.ownerOf(optionId) == msg.sender);
+    ) internal isCounterparty(optionId) returns(bool) {
+        require(
+            ERC721.ownerOf(optionId) == msg.sender
+        );
 
         _burn(optionId);
 
         return true;
+    }
+
+    function expireOption(
+        uint256 optionId
+    ) public isCounterparty(optionId) {
+
+        Option memory option = _getOption(optionId);
+
+        require(!isExecutable(option),
+            "Cannot expire an option that is still executable"
+        );
+
+        payable(msg.sender).transfer(option.underlyingValue);
+    }
+
+    function isExecutable(Option memory option) internal view returns (bool) {
+        return option.expirationDate + 1 days > block.timestamp;
+    }
+
+    modifier isCounterparty(uint256 optionId) {
+        require(
+            _getOption(optionId).counterpartyAddress == msg.sender
+        );
+        _;
     }
 
 }
