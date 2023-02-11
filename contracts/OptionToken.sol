@@ -61,8 +61,6 @@ contract OptionToken is ERC721, Ownable {
         depositedCollateral[msg.sender] += msg.value;
     }
     
-
-    // TODO: return an Option struct
     // Function to retrieve the option data
     function _getOption(uint256 id) internal view returns (Option memory) {
         return options[id];
@@ -71,11 +69,6 @@ contract OptionToken is ERC721, Ownable {
     function exerciseCallOption(
         uint256 _optionId
     ) public {
-
-        // TODO: is this necessary?
-        require(msg.sender != address(this),
-            "Can't exercise option from contract address"
-        );
 
         // Get the option details
         Option memory option = _getOption(_optionId);
@@ -89,11 +82,17 @@ contract OptionToken is ERC721, Ownable {
             "this is not a call option"
         );
 
+        // TODO: decide what to do with the /* */ section below 
         // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
-        require(option.expirationDate > block.timestamp && option.expirationDate < block.timestamp + 1 days, "Option is not in its one day exercisable window");
+        require(option.expirationDate > block.timestamp/* && option.expirationDate < block.timestamp + 1 days*/,
+            "Option is not in its one day exercisable window"
+        );
 
+        // does the USDC_Contract.transferFrom already have this check?
         // Check if the buyer has sufficient USDC to pay the strike price
-        require(USDC_Contract.balanceOf(msg.sender) >= option.strikePrice, "Buyer must have sufficient USDC to exercise at the strike price");
+        require(USDC_Contract.balanceOf(msg.sender) >= option.strikePrice,
+            "Buyer must have sufficient USDC to exercise at the strike price"
+        );
         
         // Transfer the USDC to the seller
         // note: for this smart contract to be able to execute this function,
@@ -105,6 +104,8 @@ contract OptionToken is ERC721, Ownable {
             option.strikePrice
         );
 
+        // TODO: learn how to check whether USDC transferFrom succeeded or not
+
         // Transfer the underlying ETH to the buyer
         option.counterpartyAddress.transfer(option.underlyingValue);
 
@@ -112,12 +113,12 @@ contract OptionToken is ERC721, Ownable {
         burnOption(_optionId);
     }
 
-    // burn function can only be initiaited by seller if he possesses
-    // the option token
+    // TODO: should this function be public? would someone ever want to 
+    // burn the option right away rather than waiting for it to expire?
     // i.e. he has not sold the NFT or has repurchased it from the market
     function burnOption(
         uint256 optionId
-    ) public returns(bool) {
+    ) internal returns(bool) {
         require(ERC721.ownerOf(optionId) == msg.sender);
 
         _burn(optionId);
