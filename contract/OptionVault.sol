@@ -1,154 +1,155 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import "./libraries/BlackScholes.sol";     - likely won't be included in the option contract --> pricing to occur off chain
-import "./OptionToken.sol";
-import "./PriceConsumerV3.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+//import '@openzeppelin/contracts/utils/Counters.sol';
+// TODO: instead of _mint, use the _safeMint method from OpenZeppelin's ERC721.sol
 
-contract OptionVault is OptionToken, PriceConsumerV3 {
-
-    struct Seller {
-        uint256 depositedCollateral;
-        address counterpartyAddress;
-    }
-
-    mapping (uint256 => address) optionToOwner;
-    mapping (address => uint) ownerOptionCount;
+contract OptionVault is ERC721, Ownable {
+    
+    mapping (uint256 => Option) public options;
+    //Counters.Counter private _optionCounter;
+    uint256 _optionCounter;
+    
     mapping (address => uint256) depositedCollateral;
 
-    struct Option {
-        uint256 strikePrice; // input from user
-        uint256 expirationDate; // measured in seconds from unix epoch
-        uint256 underlyingValue; // amount covered by option contract, measured in ETH
-        uint256 optionId; 
-        string assetSymbol; 
-        bool isCall;
-        address counterpartyAddress;
-    }
+    IERC721 USDC_Contract;
     
-    Option[] public options;
-
-    modifier onlyOwnerOf(uint optionId) {
-        require(msg.sender == optionToOwner[optionId]);
-    _;
-
-    address usdcAddress = 0xff970a61a04b1ca14834a43f5de4533ebddb5cc8;
-
- // @dev  may have to create a different function for depositing call and put collateral to manage the different assets required for this
-    function depositCollateral(
+    struct Option {
         uint256 strikePrice;
-        uint256 expirationDate; 
-        uint256 underlyingValue;  
-        string assetSymbol; 
+        uint256 expirationDate;
+        uint256 underlyingValue;
+        uint256 optionId;
+        string assetSymbol;
         bool isCall;
-        address counterpartyAddress;
+        address payable counterpartyAddress; // msg.sender 
+    }
+
+    constructor() ERC721("Option", "OPT") {
+        address USDC_Address = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
+        USDC_Contract = IERC721(USDC_Address);
+    }
+
+    function createOption(
+        uint256 strikePrice,
+        uint256 expirationDate,
+        uint256 underlyingValue,
+        string memory assetSymbol,
+        bool isCall
     ) public payable {
         require(msg.value >= underlyingValue);
-        optionId++;
-        Option memory option = Option(strikePrice, expirationDate, underlyingValue, optionId, assetSymbol, isCall, counterpartyAddress);
-        options.push(option);
+
+        uint256 optionId = _optionCounter;
+        _optionCounter++;
+
+        _mint(msg.sender, optionId);
+
+        Option memory newOption = Option(
+            strikePrice,
+            expirationDate,
+            underlyingValue,
+            optionId,
+            assetSymbol,
+            isCall,
+            payable(msg.sender)
+        );
+        options[optionId] = newOption;
+
+        // store the collateral in the contract
         depositedCollateral[msg.sender] += msg.value;
-        mintOption(Option.optionId);
+    }
+    
+    // Function to retrieve the option data
+    function _getOption(uint256 id) internal view returns (Option memory) {
+        return options[id];
     }
 
-    // Events for option expiration and exercise
-    event OptionExpired(uint256 optionId);
-    event OptionExercised(uint256 optionId);
-    event OptionBurned (uint256 optionId);
-
-
-    function exerciseCallOption(uint256 _optionId) public returns(string) {
-       
-        require(msg.sender != address(0), "Can't exercise option from contract address");
+    function exerciseCallOption(
+        uint256 _optionId
+    ) public {
 
         // Get the option details
         Option memory option = _getOption(_optionId);
 
         // Check if the user is the owner of the option NFT
-        require(msg.sender == ownerOf(_optionId), "User own the NFT to exercise the option");
+        require(msg.sender == ownerOf(_optionId),
+            "User must own the NFT to exercise the option"
+        );
 
-        require(option.isCall == true, "this is not a call option");
-       
+        require(option.isCall == true,
+            "this is not a call option"
+        );
 
+        // TODO: decide what to do with the /* */ section below 
         // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
-        require(option.expirationDate > block.timestamp && option.expiryDate < block.timestamp + 1 days, "Option is not in its one day exercisable window");
+        require(option.expirationDate + 1 days > block.timestamp/* && option.expirationDate < block.timestamp + 1 days*/,
+            "Option is not in its one day exercisable window"
+        );
 
-        // Check if the underlying asset price has been updated
-        uint256 currentAssetPrice = getLatestPrice();
-        require(currentAssetPrice > 0, "Underlying asset price must be retrieved before exercising the option");
-
-        if(option.strikePrice <= currentAssetPrice) {
-            // Check if the buyer has sufficient USDC to pay the strike price
-            IERC20 usdc = IERC20(usdcAddress);
-            require(usdc.balanceOf(msg.sender) >= option.strikePrice, "Buyer must have sufficient USDC to exercise at the strike price");
-            
-            // Transfer the USDC to the seller
-            usdc.transfer(option.counterpartyAddress, option.strikePrice);
-
-            // Transfer the underlying ETH to the buyer
-            address buyerAddress = msg.sender;
-            address sellerAddress = option.counterpartyAddress;
-            uint256 underlyingValue = option.underlyingValue;
-            require(sellerAddress.transfer(underlyingValue), "Transfer of underlying asset to buyer failed");
-
-            // Remove the NFT from the buyer
-            _burn(buyerAddress, _optionId);
-            return "Option exercised successfully";
-        } else {
-            return "Option is out of the money";
-        }
-    }
-
-
-    function exercisePutOption(uint256 _optionId) public returns(string) {
-       
-        require(msg.sender != address(0), "Can't exercise option from contract address");
-
-        // Get the option details
-        Option memory option = _getOption(_optionId);
-
-        // Check if the user is the owner of the option NFT
-        require(msg.sender == ownerOf(_optionId), "User must own the NFT to exercise the option");
-
-        require(option.isCall == false, "This is not a put option");
-       
-
-        // Check if the expiration date has passed --> see what exercis conditions apply in traditional markets and adjust timing logic accordingly
-        require(option.expirationDate > block.timestamp && option.expryDate < block.timestamp + 1 days, "Option is not in it's one day exercisable window");
-
-        // Check if the underlying asset price has been updated
-        uint256 currentAssetPrice = getLatestPrice();
-        require(currentAssetPrice > 0, "Underlying asset price must be retrieved before exercising the option");
-
-        if(option.strikePrice >= currentAssetPrice) {
-            // The option is ITM, transfer the strike price to the buyer 
-            uint256 usdcPrice = option.strikePrice;
-            require(ERC20(usdcAddress).transfer(option.counterpartyAddress, usdcPrice), "USDC transfer failed");
-
-            // Transfer the underlying value (eth) to the buyer/holder of the option NFT
-            uint256 underlyingValue = option.underlyingValue;
-            require(address(this).transfer(msg.sender, underlyingValue), "Underlying asset transfer failed");
-        }
-        return("Put option exercised successfully")
+        // does the USDC_Contract.transferFrom already have this check?
+        // Check if the buyer has sufficient USDC to pay the strike price
+        require(USDC_Contract.balanceOf(msg.sender) >= option.strikePrice,
+            "Buyer must have sufficient USDC to exercise at the strike price"
+        );
         
+        // Transfer the USDC to the seller
+        // note: for this smart contract to be able to execute this function,
+        // the caller should first approve the smart contract's address in the
+        // USDC contract
+        USDC_Contract.transferFrom(
+            msg.sender,
+            option.counterpartyAddress,
+            option.strikePrice
+        );
+
+        // TODO: learn how to check whether USDC transferFrom succeeded or not
+
+        // Transfer the underlying ETH to the buyer
+        option.counterpartyAddress.transfer(option.underlyingValue);
+
+        // Remove the NFT from the buyer
+        cancelOption(_optionId);
     }
 
-    function expireOption(uint256 optionId) public {
-        requires(optionId.counterpartyAddress == msg.sender, "You don't own this collateral");
-        if block.timestamp > option.expirationDate && Option.counterpartyAddress == msg.sender ; 
-        burn(optionId);
-        msg.sender.transfer(underlyingValue);
-        ownerOptionCount--;
-        emit OptionExpired(optionId);
+    // TODO: should this function be public? would someone ever want to 
+    // burn the option right away rather than waiting for it to expire?
+    // i.e. he has not sold the NFT or has repurchased it from the market
+    function cancelOption(
+        uint256 optionId
+    ) public isCounterparty(optionId) returns(bool) {
+        require(
+            ERC721.ownerOf(optionId) == msg.sender
+        );
+
+        _burn(optionId);
+
+        return true;
     }
 
-    // burn function can only be initiaited by seller if he possesses the option token
-    // i.e. he has not sold the NFT or has repurchased it from the mark
-    function burnOption() public onlyOwnerOf(optionId) returns(bool) {
-        reqire(ownerof[optionId] == msg.sender)
-        burn(optionId);
-        msg.sender.transfer(optionId.underlyingValue);
-        emit OptionBurned(optionId);
+    function expireOption(
+        uint256 optionId
+    ) public isCounterparty(optionId) {
+
+        Option memory option = _getOption(optionId);
+
+        require(!isExecutable(option),
+            "Cannot expire an option that is still executable"
+        );
+
+        payable(msg.sender).transfer(option.underlyingValue);
     }
+
+    function isExecutable(Option memory option) internal view returns (bool) {
+        return option.expirationDate + 1 days > block.timestamp;
+    }
+
+    modifier isCounterparty(uint256 optionId) {
+        require(
+            _getOption(optionId).counterpartyAddress == msg.sender
+        );
+        _;
+    }
+
 }
