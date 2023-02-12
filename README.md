@@ -1,7 +1,7 @@
 # options-vault
 A decentralized options vault and marketplace on Arbitrum utilizing NFT positions
 
-The OptionsVault contract serves as the central clearing house where collateral is sent and option NFTs are exercised by the buyer, or burned/expired by the seller. 
+The OptionsVault contract serves as the central clearing house for American style options where collateral is sent and option NFTs are exercised by the buyer, or burned/expired by the seller. 
 
 The OptionMarket contract is a limit order book where option NFTs can be listed and bought. Sellers are reccomended a price using the Black Scholes option pricing formula, however they can set the price to whatever they want because the pricing occors off chain (for now)
 
