@@ -147,7 +147,7 @@ contract OptionVault is ERC721, Ownable {
         uint256 underlyingValue = option.underlyingValue;
         require(address(this).transfer(msg.sender, underlyingValue), "Underlying asset transfer failed");
     
-        return("Put option exercised successfully")
+        return("Put option exercised successfully");
         
     }
 
