@@ -3,6 +3,10 @@ nav {
     height: 100vh;
 }
 
+.name, .profession {
+  color: black;
+}
+
 .sidebar {
     /* position: fixed; */
     top: 0;

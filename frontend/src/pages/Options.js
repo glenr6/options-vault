@@ -24,7 +24,8 @@ import "../styles/options.css";
 
 const BlackScholes = require("../components/scripts/BlackScholes");
 const ChainlinkFeed = require("../components/scripts/ChainLinkFeed");
-
+// const Contract = require("./OptionVault.json");
+const contractABII = require("./OptionVault.json").abi;
 
 // import ConnectWallet from "../components/ConnectWallet";
 
@@ -74,27 +75,49 @@ const Options = () => {
 		getPrice();
 	}, [strikePrice, expirationDate]);
 
+	const [address, setAddress] = useState(null);
+
+	useEffect(() => {
+	  async function getMetaMaskAddress() {
+		try {
+		  const accounts = await window.ethereum.enable();
+		  setAddress(accounts[0]);
+		  console.log("Addy is:" + address);
+		} catch (error) {
+		  console.error(error);
+		}
+	  }
+  
+	  if (window.ethereum) {
+		getMetaMaskAddress();
+	  }
+	}, []);
+  
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-
-		let estimatedPrice = BlackScholes.blackScholes(strikePrice, expirationDate.unix(), true);
-		console.log(estimatedPrice);
-		console.log("Price is" + optionPrice);
-		console.log(`Option Type: ${optionType} | Order Type: ${orderType}`)
 
 		// Create an instance of the Web3.js library
 		const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
 		// Define the contract ABI and address
-		const contractABI = ["5"]
-		const contractAddress = "0x"
+		const contractABI = [contractABII];
+		const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 		// Create a contract instance
-		const contractInstance = new web3.eth.Contract(contractABI, contractAddress);
-			
+		const contractInstance = new web3.eth.Contract(contractABI[0], contractAddress);
+
+		console.log(address);
+
 		// Call the depositCollateral function of the contract
 		try {
-			const result = await contractInstance.methods.depositCollateral(strikePrice, assetSymbol, amount).send({ from: web3.eth.defaultAccount });
+			const result = await contractInstance.methods.createCallOption(
+				strikePrice,
+				expirationDate.unix(),
+				amount,
+				assetSymbol,
+				optionType
+			).send({ from: address });
 			console.log("Transaction successful: ", result);
 		} catch (error) {
 			console.error("Transaction failed: ", error);
