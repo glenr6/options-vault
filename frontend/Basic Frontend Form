@@ -1,0 +1,80 @@
+import React, { useState } from 'react';
+import { ethers } from 'ethers';
+
+const ContractInteraction = () => {
+  const [contractAddress, setContractAddress] = useState('');
+  const [contractABI, setContractABI] = useState('');
+  const [firstUint, setFirstUint] = useState(0);
+  const [secondUint, setSecondUint] = useState(0);
+  const [thirdUint, setThirdUint] = useState(0);
+  const [boolValue, setBoolValue] = useState(false);
+  const [stringValue, setStringValue] = useState('');
+
+  const callContract = async () => {
+    // Connect to the Ethereum network
+    const provider = new ethers.providers.InfuraProvider('ropsten');
+
+    // Load the contract ABI and address
+    const contract = new ethers.Contract(contractAddress, contractABI, provider);
+
+    // Call the contract function and pass in the parameters
+    const result = await contract.functions.myFunction(
+      firstUint,
+      secondUint,
+      thirdUint,
+      boolValue,
+      stringValue
+    );
+
+    console.log(result);
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Enter contract address"
+        value={contractAddress}
+        onChange={(e) => setContractAddress(e.target.value)}
+      />
+      <input
+        type="text"
+        placeholder="Enter contract ABI"
+        value={contractABI}
+        onChange={(e) => setContractABI(e.target.value)}
+      />
+      <input
+        type="number"
+        placeholder="Enter first uint value"
+        value={firstUint}
+        onChange={(e) => setFirstUint(e.target.value)}
+      />
+      <input
+        type="number"
+        placeholder="Enter second uint value"
+        value={secondUint}
+        onChange={(e) => setSecondUint(e.target.value)}
+      />
+      <input
+        type="number"
+        placeholder="Enter third uint value"
+        value={thirdUint}
+        onChange={(e) => setThirdUint(e.target.value)}
+      />
+      <input
+        type="checkbox"
+        checked={boolValue}
+        onChange={(e) => setBoolValue(e.target.checked)}
+      />
+      <input
+        type="text"
+        placeholder="Enter string value"
+        value={stringValue}
+        onChange={(e) => setStringValue(e.target.value)}
+      />
+      <button onClick={callContract}>Call Contract</button>
+    </div>
+  );
+};
+
+export default ContractInteraction;
