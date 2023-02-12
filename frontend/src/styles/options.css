@@ -1,0 +1,23 @@
+.optionsForm {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+form {
+    margin-top: 20vh;
+    margin-left: 15vw;
+    min-width: 620px;
+    border: 3px solid rgba(200, 200, 200, 0.5);
+    border-radius: 5px;
+    padding: 15px;
+}
+
+.bruh {
+    padding-bottom: 150px;
+    min-width: 1000px;
+}
+
+p {
+    color: black;
+}
