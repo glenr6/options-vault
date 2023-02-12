@@ -28,7 +28,8 @@ contract OptionToken is ERC721, Ownable {
     }
 
     constructor() ERC721("Option", "OPT") {
-        address USDC_Address = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
+        // address on the Görli testnet (https://developers.circle.com/developer/docs/usdc-on-testnet#usdc-on-ethereum-goerli)
+        address USDC_Address = 0x07865c6E87B9F70255377e024ace6630C1Eaa37F;
         USDC_Contract = IERC721(USDC_Address);
     }
 
@@ -118,7 +119,7 @@ contract OptionToken is ERC721, Ownable {
     // i.e. he has not sold the NFT or has repurchased it from the market
     function cancelOption(
         uint256 optionId
-    ) internal isCounterparty(optionId) returns(bool) {
+    ) public isCounterparty(optionId) returns(bool) {
         require(
             ERC721.ownerOf(optionId) == msg.sender
         );
@@ -131,7 +132,6 @@ contract OptionToken is ERC721, Ownable {
     function expireOption(
         uint256 optionId
     ) public isCounterparty(optionId) {
-
         Option memory option = _getOption(optionId);
 
         require(!isExecutable(option),
