@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Web3 from 'web3';
 
 import dayjs from "dayjs";
 import TextField from "@mui/material/TextField";
@@ -73,7 +74,7 @@ const Options = () => {
 		getPrice();
 	}, [strikePrice, expirationDate]);
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
 
 		let estimatedPrice = BlackScholes.blackScholes(strikePrice, expirationDate.unix(), true);
@@ -85,15 +86,15 @@ const Options = () => {
 		const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
 		// Define the contract ABI and address
-		const contractABI = [...]
-		const contractAddress = "0x..."
-			
+		const contractABI = ["5"]
+		const contractAddress = "0x"
+
 		// Create a contract instance
 		const contractInstance = new web3.eth.Contract(contractABI, contractAddress);
 			
 		// Call the depositCollateral function of the contract
 		try {
-			const result = await contractInstance.methods.depositCollateral(strikePrice, assetName, underlyingQty).send({ from: web3.eth.defaultAccount });
+			const result = await contractInstance.methods.depositCollateral(strikePrice, assetSymbol, amount).send({ from: web3.eth.defaultAccount });
 			console.log("Transaction successful: ", result);
 		} catch (error) {
 			console.error("Transaction failed: ", error);
