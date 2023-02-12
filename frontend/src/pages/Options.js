@@ -80,6 +80,24 @@ const Options = () => {
 		console.log(estimatedPrice);
 		console.log("Price is" + optionPrice);
 		console.log(`Option Type: ${optionType} | Order Type: ${orderType}`)
+
+		// Create an instance of the Web3.js library
+		const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+
+		// Define the contract ABI and address
+		const contractABI = [...]
+		const contractAddress = "0x..."
+			
+		// Create a contract instance
+		const contractInstance = new web3.eth.Contract(contractABI, contractAddress);
+			
+		// Call the depositCollateral function of the contract
+		try {
+			const result = await contractInstance.methods.depositCollateral(strikePrice, assetName, underlyingQty).send({ from: web3.eth.defaultAccount });
+			console.log("Transaction successful: ", result);
+		} catch (error) {
+			console.error("Transaction failed: ", error);
+		}
 	};
 
 	return (

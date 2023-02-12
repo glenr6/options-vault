@@ -4,6 +4,7 @@ import { FaDiscord, FaGithub, FaTelegramPlane } from "react-icons/fa";
 
 // import "../styles/sidebar.css";
 import "../styles/cope.css";
+import ConnectWallet from "./ConnectWallet";
 // import ConnectWallet from "./components/ConnectWallet";
 
 // import useExternalScripts from "../hooks/useExternalScripts";
@@ -62,6 +63,9 @@ const Sidebar = () => {
 								<i className="bx bx-home-alt icon"></i>
 								<span className="text nav-text">Docs</span>
 							</Link>
+						</li>
+						<li className="nav-link">
+							<ConnectWallet/>
 						</li>
 					</ul>
 				</div>
