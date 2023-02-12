@@ -1,22 +1,23 @@
 const { Arbitrum } = require("@arbitrum/web3");
-const networkName = process.env.NETWORK_NAME;
-const contractName = process.env.CONTRACT_NAME;
+const networkName = process.env.arbitrumNova;
+const contractName = process.env.OptionVault.sol;
+const contractName = process.env.OptionMarketV1.2.sol;
 
 const arbitrum = new Arbitrum(`ws://localhost:8546`, {
-    networkId: networkName,
+    networkId: arbitrumNova,
 });
 
 module.exports = {
   networks: {
-    [networkName]: {
+    [Arbitrum Nova]: {
       provider: arbitrum,
-      network_id: process.env.NETWORK_ID,
+      network_id: process.env.42161,
     },
   },
   contracts: {
-    CollateralVault.sol: {
+    OptionVault.sol: {
     },
-    ETHOption.sol :{
+    OptionMarketV1.2.sol :{
 
     }
     ]
